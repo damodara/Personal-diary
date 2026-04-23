@@ -78,7 +78,7 @@
             </form>
         {% else %}
             <a href="{% url 'login' %}">Войти</a>
-            <a href="{% url 'register' %}">Зарегистрироваться</a>
+            <a href="{% url 'users:register' %}">Зарегистрироваться</a>
         {% endif %}
     </nav>
     <div class="container">
