@@ -14,9 +14,9 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: github_actions
+          POSTGRES_USER: damodara
+          POSTGRES_PASSWORD: damodara
+          POSTGRES_DB: diary
         ports:
           - 5432:5432
         options: >-
@@ -51,8 +51,8 @@ jobs:
     - name: Run migrations
       env:
         DB_NAME: diary
-        DB_USER: postgres
-        DB_PASSWORD: postgres
+        DB_USER: damodara
+        DB_PASSWORD: damodara
         DB_HOST: localhost
         DB_PORT: 5432
         DJANGO_SETTINGS_MODULE: config.settings
