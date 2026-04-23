@@ -50,7 +50,7 @@ jobs:
 
     - name: Run migrations
       env:
-        DB_NAME: github_actions
+        DB_NAME: diary
         DB_USER: postgres
         DB_PASSWORD: postgres
         DB_HOST: localhost
@@ -61,7 +61,7 @@ jobs:
 
     - name: Run pytest with coverage
       env:
-        DB_NAME: github_actions
+        DB_NAME: diary
         DB_USER: postgres
         DB_PASSWORD: postgres
         DB_HOST: localhost
@@ -69,10 +69,3 @@ jobs:
         DJANGO_SETTINGS_MODULE: config.settings
       run: |
         pytest --cov=. --cov-report=xml
-
-    - name: Upload coverage to Codecov (optional)
-      uses: codecov/codecov-action@v4
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        file: ./coverage.xml
-        fail_ci_if_error: false
