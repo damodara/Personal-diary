@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block title %}{{ entry.title }}{% endblock %}
+{% block content %}
+<h2>{{ entry.title }}</h2>
+<p><small>{{ entry.created_at|date:"d.m.Y H:i" }}</small></p>
+<div>{{ entry.content|linebreaks }}</div>
+<p><a href="{% url 'diary:entry_edit' entry.pk %}">Редактировать</a> | <a href="{% url 'diary:entry_delete' entry.pk %}">Удалить</a> | <a href="{% url 'diary:entry_list' %}">Назад</a></p>
+{% endblock %}
