@@ -23,10 +23,10 @@ jobs:
         DO_USER: ${{ secrets.DO_USER }}
       run: |
         ssh -o StrictHostKeyChecking=no $DO_USER@$DO_HOST '
-          cd /path/to/your/project &&
+          cd /Personal-diary &&
           git pull origin main &&
           source /path/to/venv/bin/activate &&
-          poetry install &&
+          pip install -r requirements.txt &&
           python manage.py migrate &&
           sudo systemctl restart gunicorn
         '
