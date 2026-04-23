@@ -17,4 +17,4 @@ class Entry(models.Model):
         return self.title
 
     def get_absolute_url(self):
-        return reverse("entry_detail", args=[str(self.id)])
+        return reverse("diary:entry_detail", args=[str(self.id)])

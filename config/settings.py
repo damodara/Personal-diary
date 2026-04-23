@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -107,3 +108,13 @@ STATIC_URL = "static/"
 
 LOGIN_REDIRECT_URL = "diary:entry_list"
 LOGOUT_REDIRECT_URL = "diary:entry_list"
+
+if 'test' in sys.argv:
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'diary',
+        'USER': 'postgres',
+        'PASSWORD': '1234',
+        'HOST': 'localhost',
+        'PORT': '5432',
+    }
