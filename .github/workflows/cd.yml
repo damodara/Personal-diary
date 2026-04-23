@@ -22,10 +22,11 @@ jobs:
         DO_USER: ${{ secrets.DO_USER }}
       run: |
         ssh -o StrictHostKeyChecking=no $DO_USER@$DO_HOST '
-          cd /Personal-diary &&
-          git pull origin main &&
-          source /path/to/venv/bin/activate &&
-          pip install -r requirements.txt &&
-          python manage.py migrate &&
+          set -e
+          cd ~/Personal-diary
+          git pull origin main
+          source ~/Personal-diary/venv/bin/activate
+          pip install -r requirements.txt
+          python manage.py migrate
           sudo systemctl restart gunicorn
         '
