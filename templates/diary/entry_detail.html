@@ -1,8 +1,32 @@
 {% extends 'base.html' %}
+
 {% block title %}{{ entry.title }}{% endblock %}
+
 {% block content %}
-<h2>{{ entry.title }}</h2>
-<p><small>{{ entry.created_at|date:"d.m.Y H:i" }}</small></p>
-<div>{{ entry.content|linebreaks }}</div>
-<p><a href="{% url 'diary:entry_edit' entry.pk %}">Редактировать</a> | <a href="{% url 'diary:entry_delete' entry.pk %}">Удалить</a> | <a href="{% url 'diary:entry_list' %}">Назад</a></p>
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">{{ entry.title }}</h4>
+                <div>
+                    <a href="{% url 'diary:entry_edit' entry.pk %}" class="btn btn-sm btn-light me-1">✏️ Редактировать</a>
+                    <a href="{% url 'diary:entry_delete' entry.pk %}" class="btn btn-sm btn-danger">🗑️ Удалить</a>
+                </div>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">Создано: {{ entry.created_at|date:"d.m.Y H:i" }}</p>
+                {% if entry.updated_at != entry.created_at %}
+                    <p class="text-muted small">Обновлено: {{ entry.updated_at|date:"d.m.Y H:i" }}</p>
+                {% endif %}
+                <hr>
+                <div class="entry-content">
+                    {{ entry.content|linebreaks }}
+                </div>
+            </div>
+            <div class="card-footer">
+                <a href="{% url 'diary:entry_list' %}" class="btn btn-secondary">← Назад к списку</a>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

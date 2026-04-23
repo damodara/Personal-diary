@@ -1,11 +1,21 @@
 {% extends 'base.html' %}
-{% block title %}{{ title }}{% endblock %}
+
 {% block content %}
-<h2>{{ title }}</h2>
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Сохранить</button>
-    <a href="{% url 'diary:entry_list' %}">Отмена</a>
-</form>
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4>{% if form.instance.pk %}Редактировать запись{% else %}Новая запись{% endif %}</h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <button type="submit" class="btn btn-success">Сохранить</button>
+                    <a href="{% url 'diary:entry_list' %}" class="btn btn-secondary">Отмена</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
