@@ -1,32 +1,42 @@
 {% extends 'base.html' %}
 
-{% block title %}Мои записи{% endblock %}
+{% block title %}{% if form.instance.pk %}Редактировать запись{% else %}Новая запись{% endif %}{% endblock %}
 
 {% block content %}
-<h2>Мои записи</h2>
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">{% if form.instance.pk %}✏️ Редактирование записи{% else %}➕ Создание записи{% endif %}</h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
 
-{% if entry_count == 0 %}
-    <p>У вас пока нет ни одной записи. <a href="{% url 'diary:entry_create' %}">Создать первую запись</a></p>
-{% else %}
-    <p>Всего записей: {{ entry_count }}</p>
-    <ul style="list-style: none; padding: 0;">
-        {% for entry in entries %}
-            <li style="margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 10px;">
-                <h3>{{ entry.title }}</h3>
-                <p style="color: gray; font-size: 0.9em;">
-                    Создано: {{ entry.created_at|date:"d.m.Y H:i" }}
-                    {% if entry.updated_at != entry.created_at %}
-                        | Изменено: {{ entry.updated_at|date:"d.m.Y H:i" }}
-                    {% endif %}
-                </p>
-                <p>{{ entry.content|truncatewords:30 }}</p>
-                <p>
-                    <a href="{% url 'diary:entry_detail' entry.id %}">Читать далее</a> |
-                    <a href="{% url 'diary:entry_edit' entry.id %}">Редактировать</a> |
-                    <a href="{% url 'diary:entry_delete' entry.id %}" onclick="return confirm('Удалить запись?');">Удалить</a>
-                </p>
-            </li>
-        {% endfor %}
-    </ul>
-{% endif %}
+                    <div class="mb-3">
+                        <label for="id_title" class="form-label">Заголовок</label>
+                        <input type="text" name="title" id="id_title" class="form-control"
+                               value="{{ form.title.value|default_if_none:'' }}" required>
+                        {% if form.title.errors %}
+                            <div class="text-danger small">{{ form.title.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_content" class="form-label">Содержание</label>
+                        <textarea name="content" id="id_content" rows="10" class="form-control" required>{{ form.content.value|default_if_none:'' }}</textarea>
+                        {% if form.content.errors %}
+                            <div class="text-danger small">{{ form.content.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'diary:entry_list' %}" class="btn btn-secondary">Отмена</a>
+                        <button type="submit" class="btn btn-success">Сохранить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
