@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Мои записи</h1>
+    <a href="{% url 'diary:entry_create' %}" class="btn btn-success">+ Новая запись</a>
+</div>
+
+<div class="row">
+    {% for entry in entries %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">{{ entry.title }}</h5>
+                    <p class="card-text text-muted small">{{ entry.created_at|date:"d.m.Y H:i" }}</p>
+                    <p class="card-text">{{ entry.content|truncatewords:20 }}</p>
+                    <a href="{% url 'diary:entry_detail' entry.pk %}" class="btn btn-primary btn-sm">Читать</a>
+                    <a href="{% url 'diary:entry_edit' entry.pk %}" class="btn btn-outline-secondary btn-sm">Редактировать</a>
+                    <a href="{% url 'diary:entry_delete' entry.pk %}" class="btn btn-outline-danger btn-sm">Удалить</a>
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <div class="alert alert-info">У вас пока нет записей. Создайте первую!</div>
+    {% endfor %}
+</div>
+{% endblock %}

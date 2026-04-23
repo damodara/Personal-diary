@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block title %}Регистрация{% endblock %}
+
+{% block content %}
+<h2>Создать аккаунт</h2>
+<form method="post">
+    {% csrf_token %}
+
+    {% if form.errors %}
+        <div style="color: red; margin-bottom: 15px;">
+            Исправьте ошибки ниже.
+        </div>
+    {% endif %}
+
+    {% for field in form %}
+        <div style="margin-bottom: 15px;">
+            <label for="{{ field.id_for_label }}">{{ field.label }}:</label><br>
+            {{ field }}
+            {% if field.help_text %}
+                <small style="color: gray;">{{ field.help_text }}</small>
+            {% endif %}
+            {% for error in field.errors %}
+                <div style="color: red;">{{ error }}</div>
+            {% endfor %}
+        </div>
+    {% endfor %}
+
+    <button type="submit" style="padding: 8px 16px; background: #35424a; color: white; border: none; cursor: pointer;">
+        Зарегистрироваться
+    </button>
+</form>
+<p style="margin-top: 20px;">
+    Уже есть аккаунт? <a href="{% url 'login' %}">Войдите</a>
+</p>
+{% endblock %}

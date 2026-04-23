@@ -1,0 +1,32 @@
+# .github/workflows/cd.yml
+name: Deploy to DigitalOcean
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install SSH key
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.DO_SSH_PRIVATE_KEY }}
+
+    - name: Deploy to DigitalOcean
+      env:
+        DO_HOST: ${{ secrets.DO_HOST }}
+        DO_USER: ${{ secrets.DO_USER }}
+      run: |
+        ssh -o StrictHostKeyChecking=no $DO_USER@$DO_HOST '
+          cd /path/to/your/project &&
+          git pull origin main &&
+          source /path/to/venv/bin/activate &&
+          poetry install &&
+          python manage.py migrate &&
+          sudo systemctl restart gunicorn
+        '
