@@ -24,7 +24,7 @@ jobs:
           working-directory: Personal-diary
 
       - name: 📦 Install dependencies
-        working-directory: Personal-diary # УКАЗЫВАЕМ ПАПКУ ЗДЕСЬ!
+        working-directory: Personal-diary # <-- УКАЗЫВАЕМ ПАПКУ ЗДЕСЬ!
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
@@ -61,10 +61,27 @@ jobs:
         with:
           path: Personal-diary
 
-      - name: 🔐 Setup SSH Key for deployment
+      - name: 🗝️ Generate new SSH Key (если нужно)
+        id: generate-ssh-key
+        run: |
+          # Проверим, существует ли файл ключа. Если нет — создадим.
+          if [ ! -f ~/new_github_key ]; then
+            echo "SSH key not found. Generating a new one..."
+            ssh-keygen -t rsa -b 4096 -f ~/new_github_key -N ""
+            # Выведем содержимое публичного ключа в логи,
+            # чтобы мы могли его увидеть в отчете о выполнении.
+            echo "--- PUBLIC KEY ---"
+            cat ~/new_github_key.pub
+            echo "--- PRIVATE KEY END ---"
+          else
+            echo "SSH key already exists."
+          fi
+        continue-on-error: true # Позволяет увидеть логи, даже если шаг упадет
+
+      - name: 🔐 Setup SSH Key for deployment (используем сгенерированный ключ)
         uses: webfactory/ssh-agent@v0.5.4
         with:
-          ssh-private-key: ${{ secrets.DO_SSH_PRIVATE_KEY }}
+          ssh-private-key-file: ~/new_github_key # Используем файл, который создали выше
 
       - name: 🐳 Build Docker Image from Personal-diary folder (Сборка образа)
         id: build-image
@@ -79,12 +96,15 @@ jobs:
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
-          key: ${{ secrets.DO_SSH_PRIVATE_KEY }}
+          key: ${{ secrets.DO_SSH_PRIVATE_KEY }} # Этот секрет теперь не нужен для работы, но оставлен для совместимости со старым конфигом.
           script: |
+            # Переходим в папку проекта на сервере
             cd /root/Personal-diary || cd /home/${{ secrets.DO_USER }}/Personal-diary
 
+            # Останавливаем и удаляем старый контейнер, если он есть
             docker stop my_django_app || true && docker rm my_django_app || true
 
+            # Запускаем новый контейнер, используя переменные из секретов GitHub
             docker run -d \
               --name my_django_app \
               -e SECRET_KEY=${{ secrets.SECRET_KEY }} \
