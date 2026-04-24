@@ -55,16 +55,15 @@ jobs:
         DB_PASSWORD: damodara
         DB_HOST: localhost
         DB_PORT: 5432
-        DJANGO_SETTINGS_MODULE: config.settings
-        SECRET_KEY: django-insecure-test-key-for-ci-12345
+
       run: |
         python manage.py migrate
 
     - name: Run pytest with coverage
       env:
         DB_NAME: diary
-        DB_USER: damodara      # исправлено
-        DB_PASSWORD: damodara  # исправлено
+        DB_USER: damodara
+        DB_PASSWORD: damodara
         DB_HOST: localhost
         DB_PORT: 5432
         DJANGO_SETTINGS_MODULE: config.settings
