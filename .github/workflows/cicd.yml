@@ -15,14 +15,12 @@ jobs:
       - name: 📥 Checkout code into Personal-diary folder
         uses: actions/checkout@v4
         with:
-          path: Personal-diary # <-- ВАЖНО: указываем путь
+          path: Personal-diary
 
       - name: 🐍 Setup Python 3.14
         uses: actions/setup-python@v4
         with:
           python-version: '3.14'
-          # Указываем путь к папке проекта для установки зависимостей
-          # Это нужно, чтобы pip установил пакеты в /home/runner/Personal-diary
           working-directory: Personal-diary
 
       - name: 📦 Install dependencies
@@ -47,11 +45,11 @@ jobs:
       - name: 📊 Upload coverage to Codecov (опционально)
         uses: codecov/codecov-action@v4
         with:
-          file: Personal-diary/coverage.xml # Указываем путь к отчету
+          file: Personal-diary/coverage.xml
 
   deploy-to-vps:
     name: 🚀 Deploy to VPS
-    needs: build-and-test
+    needs: build-and-test # Запускается только если тесты прошли успешно
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
 
@@ -66,36 +64,30 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.DO_SSH_PRIVATE_KEY }}
 
-      - name: 🐳 Build Docker Image from Personal-diary folder
+      - name: 🐳 Build Docker Image from Personal-diary folder (Сборка образа)
         id: build-image
         run: |
           cd Personal-diary
-          IMAGE_TAG="your-dockerhub-username/your-repo-name:${{ github.sha }}"
+          # Собираем образ с локальным именем и тегом из sha коммита
+          IMAGE_TAG="my-test-image:${{ github.sha }}"
           docker build -t $IMAGE_TAG .
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-      - name: 📤 Push Docker Image to Registry (опционально)
-        if: secrets.DOCKERHUB_PASSWORD
-        run: |
-          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-          docker push ${{ steps.build-image.outputs.IMAGE_TAG }}
-
-      - name: 📡 Deploy to VPS via SSH
+      - name: 📡 Deploy to VPS via SSH (Деплой на сервер)
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
           key: ${{ secrets.DO_SSH_PRIVATE_KEY }}
           script: |
-            # Переходим в нужную папку на сервере перед выполнением команд
-            cd /root/Personal-diary || cd /home/your_user/Personal-diary
+            # Переходим в папку проекта на сервере
+            cd /root/Personal-diary || cd /home/${{ secrets.DO_USER }}/Personal-diary
 
-            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin || true
-
-            docker pull ${{ steps.build-image.outputs.IMAGE_TAG }} || true
-
+            # Останавливаем и удаляем старый контейнер, если он есть
             docker stop my_django_app || true && docker rm my_django_app || true
 
+            # Запускаем новый контейнер, используя переменные из секретов GitHub
+            # Обратите внимание, что мы используем IMAGE_TAG из предыдущего шага!
             docker run -d \
               --name my_django_app \
               -e SECRET_KEY=${{ secrets.SECRET_KEY }} \
