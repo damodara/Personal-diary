@@ -24,7 +24,9 @@ jobs:
           working-directory: Personal-diary
 
       - name: 📦 Install dependencies
+        working-directory: Personal-diary # УКАЗЫВАЕМ ПАПКУ ЗДЕСЬ!
         run: |
+          pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: 🔐 Setup .env for tests (SECRET_KEY)
@@ -49,7 +51,7 @@ jobs:
 
   deploy-to-vps:
     name: 🚀 Deploy to VPS
-    needs: build-and-test # Запускается только если тесты прошли успешно
+    needs: build-and-test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
 
@@ -68,7 +70,6 @@ jobs:
         id: build-image
         run: |
           cd Personal-diary
-          # Собираем образ с локальным именем и тегом из sha коммита
           IMAGE_TAG="my-test-image:${{ github.sha }}"
           docker build -t $IMAGE_TAG .
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_OUTPUT
@@ -80,14 +81,10 @@ jobs:
           username: ${{ secrets.DO_USER }}
           key: ${{ secrets.DO_SSH_PRIVATE_KEY }}
           script: |
-            # Переходим в папку проекта на сервере
             cd /root/Personal-diary || cd /home/${{ secrets.DO_USER }}/Personal-diary
 
-            # Останавливаем и удаляем старый контейнер, если он есть
             docker stop my_django_app || true && docker rm my_django_app || true
 
-            # Запускаем новый контейнер, используя переменные из секретов GitHub
-            # Обратите внимание, что мы используем IMAGE_TAG из предыдущего шага!
             docker run -d \
               --name my_django_app \
               -e SECRET_KEY=${{ secrets.SECRET_KEY }} \
