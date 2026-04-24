@@ -1,6 +1,5 @@
 name: CI/CD Pipeline
 
-# Запускать при пуше в ветку main и при создании пул-реквеста в main
 on:
   push:
     branches: [ main ]
@@ -8,48 +7,90 @@ on:
     branches: [ main ]
 
 jobs:
-  # Часть 1: Тестирование и сборка
   build-and-test:
     name: 🧪 Build, Test & Coverage
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout code
+      - name: 📥 Checkout code into Personal-diary folder
         uses: actions/checkout@v4
+        with:
+          path: Personal-diary
 
       - name: 🐍 Setup Python 3.14
         uses: actions/setup-python@v4
         with:
           python-version: '3.14'
+          working-directory: Personal-diary
 
       - name: 📦 Install dependencies
+        working-directory: Personal-diary # УКАЗЫВАЕМ ПАПКУ ЗДЕСЬ!
         run: |
-          python -m pip install --upgrade pip
+          pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: 🔐 Setup .env for tests (SECRET_KEY)
-        run: echo "SECRET_KEY=temporary-secret-key-for-tests" > .env
+        run: |
+          echo "SECRET_KEY=temporary-secret-key-for-tests" > Personal-diary/.env
 
       - name: 🛢️ Setup PostgreSQL for tests (локально)
         run: |
           sudo apt-get update
           sudo apt-get install -y postgresql-client
-          echo "host: localhost" > .pg_config
-          echo "user: postgres" >> .pg_config # или твой тестовый юзер
+          echo "host: localhost" > Personal-diary/.pg_config
+          echo "user: postgres" >> Personal-diary/.pg_config
 
       - name: 🧪 Run tests with coverage
         run: |
-          pytest --cov=. --cov-report=xml
+          cd Personal-diary && pytest --cov=. --cov-report=xml
 
       - name: 📊 Upload coverage to Codecov (опционально)
         uses: codecov/codecov-action@v4
+        with:
+          file: Personal-diary/coverage.xml
 
-  # Часть 2: Деплой на VPS (только при пуше в main)
   deploy-to-vps:
     name: 🚀 Deploy to VPS
-    needs: build-and-test # Запускается только если тесты прошли успешно
+    needs: build-and-test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
 
     steps:
-      - name: 📥
+      - name: 📥 Checkout code into Personal-diary folder (на сервере)
+        uses: actions/checkout@v4
+        with:
+          path: Personal-diary
+
+      - name: 🔐 Setup SSH Key for deployment
+        uses: webfactory/ssh-agent@v0.5.4
+        with:
+          ssh-private-key: ${{ secrets.DO_SSH_PRIVATE_KEY }}
+
+      - name: 🐳 Build Docker Image from Personal-diary folder (Сборка образа)
+        id: build-image
+        run: |
+          cd Personal-diary
+          IMAGE_TAG="my-test-image:${{ github.sha }}"
+          docker build -t $IMAGE_TAG .
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: 📡 Deploy to VPS via SSH (Деплой на сервер)
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USER }}
+          key: ${{ secrets.DO_SSH_PRIVATE_KEY }}
+          script: |
+            cd /root/Personal-diary || cd /home/${{ secrets.DO_USER }}/Personal-diary
+
+            docker stop my_django_app || true && docker rm my_django_app || true
+
+            docker run -d \
+              --name my_django_app \
+              -e SECRET_KEY=${{ secrets.SECRET_KEY }} \
+              -e DB_NAME=${{ secrets.DB_NAME }} \
+              -e DB_USER=${{ secrets.DB_USER }} \
+              -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
+              -e DB_HOST=${{ secrets.DB_HOST }} \
+              -p 8000:8000 \
+              ${{ steps.build-image.outputs.IMAGE_TAG }}
