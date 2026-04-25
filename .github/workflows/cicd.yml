@@ -1,116 +1,74 @@
-name: CI/CD Pipeline
+name: Deploy Django to Server (Docker)
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    branches: [ main ]   # измените на свою ветку, например master
 
 jobs:
-  build-and-test:
-    name: 🧪 Build, Test & Coverage
+  deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: 📥 Checkout code into Personal-diary folder
-        uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup SSH key
+        uses: webfactory/ssh-agent@v0.8.0
         with:
-          path: Personal-diary
+          ssh-private-key: ${{ secrets.DO_SSH_PRIVATE_KEY }}
 
-      - name: 🐍 Setup Python 3.14
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.14'
-          working-directory: Personal-diary
-
-      - name: 📦 Install dependencies
-        working-directory: Personal-diary # <-- УКАЗЫВАЕМ ПАПКУ ЗДЕСЬ!
+      - name: Add host to known_hosts
         run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt
+          ssh-keyscan -H ${{ secrets.DO_HOST }} >> ~/.ssh/known_hosts
 
-      - name: 🔐 Setup .env for tests (SECRET_KEY)
+      - name: Sync project files via rsync
         run: |
-          echo "SECRET_KEY=temporary-secret-key-for-tests" > Personal-diary/.env
+          rsync -avz --delete \
+            --exclude='.git/' \
+            --exclude='__pycache__/' \
+            --exclude='.env' \
+            --exclude='static/' \
+            --exclude='media/' \
+            -e "ssh -o StrictHostKeyChecking=no" \
+            ./ ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }}:/Personal-diary/
 
-      - name: 🛢️ Setup PostgreSQL for tests (локально)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client
-          echo "host: localhost" > Personal-diary/.pg_config
-          echo "user: postgres" >> Personal-diary/.pg_config
-
-      - name: 🧪 Run tests with coverage
-        run: |
-          cd Personal-diary && pytest --cov=. --cov-report=xml
-
-      - name: 📊 Upload coverage to Codecov (опционально)
-        uses: codecov/codecov-action@v4
-        with:
-          file: Personal-diary/coverage.xml
-
-  deploy-to-vps:
-    name: 🚀 Deploy to VPS
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-
-    steps:
-      - name: 📥 Checkout code into Personal-diary folder (на сервере)
-        uses: actions/checkout@v4
-        with:
-          path: Personal-diary
-
-      - name: 🗝️ Generate new SSH Key (если нужно)
-        id: generate-ssh-key
-        run: |
-          # Проверим, существует ли файл ключа. Если нет — создадим.
-          if [ ! -f ~/new_github_key ]; then
-            echo "SSH key not found. Generating a new one..."
-            ssh-keygen -t rsa -b 4096 -f ~/new_github_key -N ""
-            # Выведем содержимое публичного ключа в логи,
-            # чтобы мы могли его увидеть в отчете о выполнении.
-            echo "--- PUBLIC KEY ---"
-            cat ~/new_github_key.pub
-            echo "--- PRIVATE KEY END ---"
-          else
-            echo "SSH key already exists."
-          fi
-        continue-on-error: true # Позволяет увидеть логи, даже если шаг упадет
-
-      - name: 🔐 Setup SSH Key for deployment (используем сгенерированный ключ)
-        uses: webfactory/ssh-agent@v0.5.4
-        with:
-          DO_SSH_PRIVATE_KEY: ~/new_github_key # Используем файл, который создали выше
-
-      - name: 🐳 Build Docker Image from Personal-diary folder (Сборка образа)
-        id: build-image
-        run: |
-          cd Personal-diary
-          IMAGE_TAG="my-test-image:${{ github.sha }}"
-          docker build -t $IMAGE_TAG .
-          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_OUTPUT
-
-      - name: 📡 Deploy to VPS via SSH (Деплой на сервер)
+      - name: Deploy with Docker on server
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
-          key: ${{ secrets.DO_SSH_PRIVATE_KEY }} # Этот секрет теперь не нужен для работы, но оставлен для совместимости со старым конфигом.
+          key: ${{ secrets.DO_SSH_PRIVATE_KEY }}
+          script_stop: true
           script: |
-            # Переходим в папку проекта на сервере
-            cd /root/Personal-diary || cd /home/${{ secrets.DO_USER }}/Personal-diary
+            cd /Personal-diary
 
-            # Останавливаем и удаляем старый контейнер, если он есть
-            docker stop my_django_app || true && docker rm my_django_app || true
+            # Создать .env файл из секретов
+            cat > .env <<EOF
+            DB_NAME=${{ secrets.DB_NAME }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            DB_USER=${{ secrets.DB_USER }}
+            DB_HOST=db  # если используете сервис postgres с именем db в docker-compose, иначе укажите localhost
+            SECRET_KEY=${{ secrets.SECRET_KEY }}
+            DEBUG=False
+            # Добавьте другие переменные при необходимости
+            EOF
 
-            # Запускаем новый контейнер, используя переменные из секретов GitHub
-            docker run -d \
-              --name my_django_app \
-              -e SECRET_KEY=${{ secrets.SECRET_KEY }} \
-              -e DB_NAME=${{ secrets.DB_NAME }} \
-              -e DB_USER=${{ secrets.DB_USER }} \
-              -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
-              -e DB_HOST=${{ secrets.DB_HOST }} \
-              -p 8000:8000 \
-              ${{ steps.build-image.outputs.IMAGE_TAG }}
+            # Остановить старые контейнеры, пересобрать образы и запустить в фоне
+            docker-compose down --remove-orphans
+            docker-compose up --build -d
+
+            # Подождать, пока контейнеры поднимутся
+            sleep 5
+
+            # Выполнить миграции внутри контейнера Django (название сервиса – 'web' или 'app')
+            docker-compose exec -T web python manage.py migrate --noinput
+
+            # Собрать статику (если нужно)
+            docker-compose exec -T web python manage.py collectstatic --noinput
+
+            # Перезагрузить Nginx (если он в контейнере) или на хосте
+            # Если Nginx на хосте, используйте: sudo systemctl reload nginx
+            # Если в контейнере, то рестарт не нужен, т.к. статика смонтирована
+
+      - name: Verify deployment
+        run: |
+          echo "Deployment completed to ${{ secrets.DO_HOST }}"
