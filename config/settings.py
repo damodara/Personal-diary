@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # Загружаем .env только если не находимся в Docker-контейнере
-if not os.getenv('DOCKER_ENV'):
+if not os.getenv("DOCKER_ENV"):
     load_dotenv(override=True)
 
 
@@ -30,7 +30,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "diary",
-    'users',
+    "users",
 ]
 
 MIDDLEWARE = [
@@ -109,12 +109,12 @@ STATIC_URL = "static/"
 LOGIN_REDIRECT_URL = "diary:entry_list"
 LOGOUT_REDIRECT_URL = "diary:entry_list"
 
-if 'test' in sys.argv:
-    DATABASES['default'] = {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'diary',
-        'USER': 'postgres',
-        'PASSWORD': '1234',
-        'HOST': 'localhost',
-        'PORT': '5432',
+if "test" in sys.argv:
+    DATABASES["default"] = {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "diary",
+        "USER": "postgres",
+        "PASSWORD": "1234",
+        "HOST": "localhost",
+        "PORT": "5432",
     }
