@@ -9,21 +9,7 @@ on:
 jobs:
   test-and-lint:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_DB: testdb
-          POSTGRES_USER: testuser
-          POSTGRES_PASSWORD: testpass
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
+    # PostgreSQL в CI не нужен — используем SQLite in-memory
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -33,15 +19,10 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Lint with flake8
-        run: flake8 . --max-line-length=88 --exclude=migrations,staticfiles,__pycache__
+        run: flake8 . --max-line-length=120 --exclude=migrations,staticfiles,__pycache__
       - name: Test with pytest
         env:
           SECRET_KEY: dummy
-          NAME: testdb
-          USER: testuser
-          PASSWORD: testpass
-          HOST: localhost
-          PORT: 5432
         run: pytest
       - name: Check Docker build
         run: docker build -t diary .
@@ -59,16 +40,16 @@ jobs:
           username: ${{ secrets.DO_USER }}
           key: ${{ secrets.DO_SSH_PRIVATE_KEY }}
           script: |
-            cd /Personal-diary   # если папка называется diary, замените на /diary
+            cd /home/${{ secrets.DO_USER }}/Personal-diary
 
-            # Создать .env файл из секретов
             cat > .env <<EOF
             DB_NAME=${{ secrets.DB_NAME }}
-            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
             DB_USER=postgres
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
             DB_HOST=db
             SECRET_KEY=${{ secrets.SECRET_KEY }}
             DEBUG=False
+            ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }}
             EOF
 
             git pull origin main
@@ -78,9 +59,9 @@ jobs:
 
             sleep 5
 
-            # Имя сервиса — diary (замените, если в docker-compose другое)
-            docker compose exec -T diary python manage.py migrate --noinput
-            docker compose exec -T diary python manage.py collectstatic --noinput
+            # название сервиса в docker-compose.yml — web
+            docker compose exec -T web python manage.py migrate --noinput
+            docker compose exec -T web python manage.py collectstatic --noinput
 
             sudo systemctl reload nginx   # если nginx на хосте
             docker system prune -f

@@ -1,4 +1,5 @@
-# Переопределяем базу данных на SQLite in-memory
+from .settings import *
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -6,7 +7,6 @@ DATABASES = {
     }
 }
 
-# Для тестов можно упростить проверку паролей
 PASSWORD_HASHERS = [
-    "django.contrib.auth.hashers.MD5PasswordHasher",  # быстрее, чем PBKDF2
+    "django.contrib.auth.hashers.MD5PasswordHasher",
 ]
