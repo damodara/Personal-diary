@@ -81,7 +81,7 @@ jobs:
       - name: 🔐 Setup SSH Key for deployment (используем сгенерированный ключ)
         uses: webfactory/ssh-agent@v0.5.4
         with:
-          ssh-private-key-file: ~/new_github_key # Используем файл, который создали выше
+          DO_SSH_PRIVATE_KEY: ~/new_github_key # Используем файл, который создали выше
 
       - name: 🐳 Build Docker Image from Personal-diary folder (Сборка образа)
         id: build-image
