@@ -1,36 +1,40 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<!-- ФОРМА ПОИСКА -->
-<form method="get" class="mb-4">
+<div class="d-flex justify-content-between align-items-center mb-5">
+    <h1 class="fw-bold" style="font-size: 2rem;">Мои записи</h1>
+    <a href="{% url 'diary:entry_create' %}" class="btn btn-primary">+ Новая запись</a>
+</div>
+
+<form method="get" class="mb-5">
     <div class="input-group">
         <input type="text" name="q" class="form-control" placeholder="Поиск по заголовку или тексту..." value="{{ query|default:'' }}">
         <button class="btn btn-primary" type="submit">Найти</button>
     </div>
 </form>
 
-<!-- ОСТАЛЬНОЕ СОДЕРЖИМОЕ (кнопка "Новая запись" и карточки) -->
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>Мои записи</h1>
-    <a href="{% url 'diary:entry_create' %}" class="btn btn-success">+ Новая запись</a>
-</div>
-
-<div class="row">
+<div class="row g-4">
     {% for entry in entries %}
-        <div class="col-md-6 col-lg-4 mb-4">
-            <div class="card h-100 shadow-sm">
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100">
                 <div class="card-body">
-                    <h5 class="card-title">{{ entry.title }}</h5>
-                    <p class="card-text text-muted small">{{ entry.created_at|date:"d.m.Y H:i" }}</p>
+                    <h5 class="card-title fw-semibold">{{ entry.title }}</h5>
+                    <p class="card-text text-muted small mb-2">{{ entry.created_at|date:"d.m.Y H:i" }}</p>
                     <p class="card-text">{{ entry.content|truncatewords:20 }}</p>
-                    <a href="{% url 'diary:entry_detail' entry.pk %}" class="btn btn-primary btn-sm">Читать</a>
-                    <a href="{% url 'diary:entry_edit' entry.pk %}" class="btn btn-outline-secondary btn-sm">Редактировать</a>
-                    <a href="{% url 'diary:entry_delete' entry.pk %}" class="btn btn-outline-danger btn-sm">Удалить</a>
+                </div>
+                <div class="card-footer bg-transparent d-flex gap-2">
+                    <a href="{% url 'diary:entry_detail' entry.pk %}" class="btn btn-sm btn-primary">Читать</a>
+                    <a href="{% url 'diary:entry_edit' entry.pk %}" class="btn btn-sm btn-light">Редактировать</a>
+                    <a href="{% url 'diary:entry_delete' entry.pk %}" class="btn btn-sm btn-outline-danger">Удалить</a>
                 </div>
             </div>
         </div>
     {% empty %}
-        <div class="alert alert-info">У вас пока нет записей. Создайте первую!</div>
+        <div class="col-12">
+            <div class="alert alert-light text-center py-5">
+                <p class="mb-0">У вас пока нет записей. Создайте первую!</p>
+            </div>
+        </div>
     {% endfor %}
 </div>
 {% endblock %}
