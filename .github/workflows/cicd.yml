@@ -60,10 +60,10 @@ jobs:
             sleep 5
 
             # Выполнить миграции внутри контейнера Django (название сервиса – 'web' или 'app')
-            docker-compose exec -T web python manage.py migrate --noinput
+            docker-compose exec -T diary python manage.py migrate --noinput
 
             # Собрать статику (если нужно)
-            docker-compose exec -T web python manage.py collectstatic --noinput
+            docker-compose exec -T diary python manage.py collectstatic --noinput
 
             # Перезагрузить Nginx (если он в контейнере) или на хосте
             # Если Nginx на хосте, используйте: sudo systemctl reload nginx
