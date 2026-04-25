@@ -4,40 +4,6 @@ from django.urls import reverse
 from users.forms import CustomUserCreationForm
 
 
-class TestRegisterView:
-    def test_get_register_page(self, client):
-        response = client.get(reverse("users:register"))  # заменили
-        assert response.status_code == 200
-        assert isinstance(response.context["form"], CustomUserCreationForm)
-
-    def test_post_valid_registration(self, client, db):
-        response = client.post(
-            reverse("users:register"),
-            data={
-                "username": "reguser",
-                "email": "reg@example.com",
-                "password1": "Str0ngP@ss1",
-                "password2": "Str0ngP@ss1",
-            },
-        )
-        assert response.status_code == 302
-        assert response.url == reverse("login")
-        assert User.objects.filter(username="reguser").exists()
-        user = User.objects.get(username="reguser")
-        assert user.email == "reg@example.com"
-
-    def test_post_invalid_registration(self, client, db):
-        response = client.post(
-            reverse("users:register"),
-            data={
-                "username": "reguser",
-                "email": "invalid",
-                "password1": "pass",
-                "password2": "wrong",
-            },
-        )
-        assert response.status_code == 200
-        assert response.context["form"].errors
 
 
 class TestRegisterView:

@@ -1,5 +1,5 @@
 from django.contrib import messages
-
+from django.db.models import Q
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 
@@ -10,17 +10,22 @@ from .models import Entry
 @login_required
 def my_entries_list(request):
     """
-    Отображает список всех записей текущего пользователя.
-    Доступно только авторизованным.
+    Отображает список записей текущего пользователя с возможностью поиска.
     """
-    # Фильтруем записи по автору = текущий пользователь
     entries = Entry.objects.filter(author=request.user)
+    query = request.GET.get('q')
+
+    if query:
+        entries = entries.filter(
+            Q(title__icontains=query) | Q(content__icontains=query)
+        )
 
     context = {
-        "entries": entries,
-        "entry_count": entries.count(),
+        'entries': entries,
+        'entry_count': entries.count(),
+        'query': query,
     }
-    return render(request, "diary/entry_list.html", context)
+    return render(request, 'diary/entry_list.html', context)
 
 
 @login_required
